@@ -1,43 +1,33 @@
-PROJECT_ROOT = $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+#-------------------------------------------------------------------------
+#
+# Makefile--
+#    Makefile for tutorial
+#
+# By default, this builds against an existing PostgreSQL installation
+# (the one identified by whichever pg_config is first in your path).
+# Within a configured source tree, you can say "make NO_PGXS=1 all"
+# to build using the surrounding source tree.
+#
+# IDENTIFICATION
+#    src/tutorial/Makefile
+#
+#-------------------------------------------------------------------------
 
-OBJS = MyPro.o
+MODULES = complex funcs
+DATA_built = advanced.sql basics.sql complex.sql funcs.sql syscat.sql
 
-BUILD_MODE = debug
-
-Include  = C:\MinGW\include
-
-Lib_dir = C:\MinGW\lib
-
-libs = $(Lib_dir)\libwinmm.a
-
-ifeq ($(BUILD_MODE),debug)
-	CFLAGS += -g
-else ifeq ($(BUILD_MODE),run)
-	CFLAGS += -O2
-else ifeq ($(BUILD_MODE),linuxtools)
-	CFLAGS += -g -pg -fprofile-arcs -ftest-coverage
-	LDFLAGS += -pg -fprofile-arcs -ftest-coverage
-	EXTRA_CLEAN += MyPro.gcda MyPro.gcno $(PROJECT_ROOT)gmon.out
-	EXTRA_CMDS = rm -rf MyPro.gcda
+ifdef NO_PGXS
+subdir = src/tutorial
+top_builddir = ../..
+include $(top_builddir)/src/Makefile.global
+include $(top_srcdir)/src/makefiles/pgxs.mk
 else
-    $(error Build mode $(BUILD_MODE) not supported by this Makefile)
+PG_CONFIG = pg_config
+PGXS := $(shell $(PG_CONFIG) --pgxs)
+include $(PGXS)
 endif
 
-all:	MyPro
-
-MyPro:	$(OBJS)
-	$(CXX) $(LDFLAGS) -o $@ $^ -I $(Include) -L $(Lib_dir) $(libs)
-	$(EXTRA_CMDS)
-
-%.o:	$(PROJECT_ROOT)%.cpp
-	$(CXX) -c $(CFLAGS) $(CXXFLAGS) $(CPPFLAGS) -o $@ $< 
-
-%.o:	$(PROJECT_ROOT)%.c
-	$(CC) -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
-
-clean:
-	del -fr MyPro $(OBJS) MyPro.exe
-	
-INFO:
-	@echo "libs $(libs)" 
-	@echo "include $(Include)"
+%.sql: %.source
+	rm -f $@; \
+	C=`pwd`; \
+	sed -e "s:_OBJWD_:$$C:g" < $< > $@
