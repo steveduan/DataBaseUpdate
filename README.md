@@ -1,2 +1,2 @@
 # DataBaseUpdate
-This is a Database update project.
+This is a Database upgrade project.
